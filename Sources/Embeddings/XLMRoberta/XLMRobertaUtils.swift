@@ -54,15 +54,22 @@ extension XLMRoberta {
 
     private static func loadAddedTokens(from modelFolder: URL) async throws -> [String: Int] {
         let hubConfiguration = LanguageModelConfigurationFromHub(modelFolder: modelFolder)
-        let addedTokens = try await hubConfiguration.tokenizerData.addedTokens?.arrayValue?.map {
-            $0.dictionary as [BinaryDistinctString: Any]?
-        }
-        guard let addedTokens else {
+        // 1. Get the array of Config objects directly.
+        //    `tokenConfigObjects` will be of type `[Config]?`.
+        let tokenConfigObjects = try await hubConfiguration.tokenizerData.addedTokens?.arrayValue
+        
+        // 2. Guard against nil if the array doesn't exist.
+        //    `actualTokenConfigs` will be of type `[Config]`.
+        guard let actualTokenConfigs = tokenConfigObjects else {
             return [:]
         }
+        
         var result = [String: Int]()
-        for addedToken in addedTokens {
-            if let content = addedToken["content"] as? String, let id = addedToken["id"] as? Int {
+        // 3. Iterate over each Config object in the array.
+        for tokenConfig in actualTokenConfigs {
+            // 4. Use subscripting and typed accessors on the Config object.
+            if let content = tokenConfig["content"].stringValue,
+               let id = tokenConfig["id"].intValue {
                 result[content] = id
             }
         }
